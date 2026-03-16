@@ -17,7 +17,7 @@ Host-side healthcheck script that leverages Docker Health and Portainer webhooks
 - **Portainer webhook fallback** — triggers a full stack redeployment if `docker restart` fails
 - **Discord notifications** — alerts you at each failure stage with per-status hourly throttling
 - **Flexible functional test** — configure any `curl`, `dig`, `docker exec`, or other shell command as the app-level health check
-- **Automatic log trimming** — keeps the log file capped at 100 lines
+- **Automatic log trimming** — keeps the log file capped at 1000 lines (Configurable)
 
 ---
 
