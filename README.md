@@ -93,6 +93,52 @@ HC_COMMAND='docker exec wireguard-client sh -c '"'"'ping -c 1 \
 
 ---
 
+## Docker Compose Healthcheck Integration
+
+This script is designed to act on top of Docker's built-in healthcheck — it reads the container's health status and restarts or redeploys if it reports `unhealthy`. To take full advantage of Check #3, define a `healthcheck` in your container's `docker-compose.yml`.
+
+Without a `healthcheck` defined, Docker has no health status to report and Check #3 is silently skipped. Checks 1, 2, and 4 still function normally.
+
+### Example
+```yaml
+services:
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8989"]
+      interval: 30s       # How often Docker runs the check
+      timeout: 10s        # How long before the check is considered failed
+      retries: 3          # Consecutive failures before status becomes 'unhealthy'
+      start_period: 30s   # Grace period on container start before failures count
+    environment:
+      - PUID=1000
+      - PGID=1000
+    volumes:
+      - ./config:/config
+    restart: unless-stopped
+```
+
+### How They Work Together
+
+| Layer | Tool | Action |
+|-------|------|--------|
+| Inner | Docker healthcheck | Marks container as `unhealthy` after N retries |
+| Outer | portainer-docker-watchdog | Detects `unhealthy` status and restarts or redeploys |
+
+Docker itself will not restart a container based on healthcheck status alone — `restart: unless-stopped` only acts on crashes. This script bridges that gap.
+
+### Healthcheck Tips
+
+- Set `start_period` long enough for your app to fully initialize — prevents false `unhealthy` status on slow-starting containers
+- The `test` command should be the lightest possible check, as Docker runs it on the defined `interval` — use the heavier/more thorough test in `HC_COMMAND` instead
+- You can check the current health status of any container manually with:
+```bash
+  docker inspect --format='{{.State.Health.Status}}' sonarr
+```
+
+---
+
 ## Setup
 
 1. Copy the script to your host, e.g. `/root/healthchecks/sonarr-check.sh`
